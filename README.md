@@ -1,2 +1,3 @@
-# pick-and-choose-gnn
-Pick and Choose implementation
+# Pick and Choose Graph Neural Network implementation
+
+Pick and Choose implementation for baseline comparison purposes.
