@@ -1,0 +1,59 @@
+Definitions:
+
+G = (V, E, A, X, C)
+V = Set of Nodes
+E = Edges of R relations
+A = Set of corresponding adjacency matrices of R relations
+X = d-dimensional feature vector
+C = Classification (Label)
+
+V_train = set of training nodes
+N_p = number of picked nodes in each epoch
+N_epoch = number of total training epochs
+N_batch = number of training batch size
+L = number of layers
+d_l = dimension of l-th layer
+
+Â = D^{-1/2} A D^{-1/2}
+D = Diagonal Matrix with degree of each node as its element
+
+Algorithm:
+
+init
+h_v(0) <- X_v
+
+P(v) \sim (||Â(:,v)||²)/(LF(C(v)))
+
+Â(:,v) = column v in the normalized adjacency matrix Â
+LF(C(v)) = label frequency of class C(v)
+
+v \in V_train
+
+for epoch = 1, ..., N_epoch do
+    pick N_p nodes using P(v) to obtain V_p
+    decide the number of training batches B = ceil(|V_p| / N_batch)
+
+    for b = 1, ..., B do
+        gather nodes of batch b along with edges between them to construct sub-graph G_b = (V_b, E_b)
+
+        for l=1, ..., L do
+            for r=1, ..., R do
+                for each node v \in V_b, its neighbors are under-sampled as the following equation (5)
+                if the node v belongs to the minority class, then the neighborhood is further oversampled by equation (6)
+
+                update h_(v,r)^{(l)} with equation (8), v \in V_b
+            update h_v^{(l)} with equation (9), v \in V_b
+
+return h_v^{(L)}, v \in V
+
+
+
+Equation (5):
+N_r^{(l)}(v) = {u \in V | A_r(v, u) > 0 and D_r^{(l)}(v, u) < rho_negative}
+
+D_r^{(l)} = Distance function based on a fully-connected layer predicting the probability of fraud
+D_r^{(l)}(v, u) = ||D_r^{(l)} h_{v,r}^{(l)} - D_r^{(l)} h_{u,r}^{(l)}||_1
+
+Equation (6):
+paper
+
