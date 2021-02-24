@@ -18,16 +18,14 @@ def test_calculate_D(A: np.array, expected_D: np.array):
 
 @pytest.mark.parametrize(
     argnames=['A', 'expected_A_hat'],
-    argvalues=[
-        (
-            np.array([[0, 1, 1], [1, 0, 1], [0, 1, 1]]),
-            np.array([[0, 0.5, 0.5], [0.5, 0, 0.5], [0, 0.5, 0.5]]),
-        ),
-        (
-            np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]]),
-            np.array([[0, 0.70710678, 0], [0.70710678, 0, 0.70710678], [0, 0.70710678, 0]]),
-        )
-    ]
+    argvalues=[(
+        np.array([[0, 1, 1], [1, 0, 1], [0, 1, 1]]),
+        np.array([[0, 0.5, 0.5], [0.5, 0, 0.5], [0, 0.5, 0.5]]),
+    ),
+               (
+                   np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]]),
+                   np.array([[0, 0.70710678, 0], [0.70710678, 0, 0.70710678], [0, 0.70710678, 0]]),
+               )]
 )
 def test_calculate_A_hat(A: np.array, expected_A_hat: np.array):
     A_hat = LabelBalancedSampler(A, np.array([]))._calculate_A_hat()
