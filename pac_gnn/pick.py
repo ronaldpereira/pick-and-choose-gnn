@@ -52,4 +52,4 @@ class LabelBalancedSampler:
     def calculate_P(self, node_idx: int) -> float:
         prob = np.linalg.norm(self.A_hat[:, node_idx], ord=2) / self._node_label_frequency(node_idx)
 
-        return prob
+        return round(prob, 4)
