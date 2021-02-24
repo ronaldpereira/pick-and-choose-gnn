@@ -3,3 +3,5 @@ yapf
 pylint
 isort
 pytest
+networkx
+scipy
