@@ -3,6 +3,7 @@ from networkx.linalg.graphmatrix import adjacency_matrix
 import numpy as np
 
 from pac_gnn.pick import LabelBalancedSampler
+from pac_gnn.aggregate import MessagePassing
 
 
 def _create_graph() -> networkx.Graph:
@@ -23,6 +24,10 @@ def main():
     G, labels = _create_graph()
 
     label_balanced_sampler = LabelBalancedSampler(np.array(adjacency_matrix(G).todense()), labels)
+
+    message_passing = MessagePassing(
+        G, np.array([]), [0, 2], 2, 10, 3, 2, 2, label_balanced_sampler
+    )
 
 
 if __name__ == '__main__':
