@@ -1,6 +1,6 @@
 import math
 import random
-from typing import List
+from typing import List, Generator
 from itertools import combinations
 
 import networkx
@@ -45,10 +45,12 @@ class MessagePassing:
         self.h_v = np.zeros(shape=[n_layers, features.shape[0], features.shape[1]])
         self._init_h_v_0()
 
+        self.weights = np.zeros(shape=[n_layers, features.shape[0], features.shape[1]])
+
     def _init_h_v_0(self):
         self.h_v[0] = self.features
 
-    def _construct_subgraph(self, nodes_idx: List[int]):
+    def _construct_subgraph(self, nodes_idx: List[int]) -> networkx.Graph:
         sub_G = networkx.Graph()
         sub_G.add_nodes_from(nodes_idx)
 
@@ -58,9 +60,18 @@ class MessagePassing:
 
         return sub_G
 
-    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int):
+    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int) -> Generator[List[int]]:
         for i in range(0, len(nodes_idx), batch_size):
             yield nodes_idx[i:i + batch_size]
+
+    @staticmethod
+    def _relu(matrix: np.array) -> np.array:
+        return matrix * (matrix > 0)
+
+    def _calculate_h_v_l(self, layer: int) -> np.array:
+        return self._relu(
+            self.weights[layer] @ np.concatenate(self.h_v[layer - 1], self.h_v[layer])
+        )
 
     def execute(self):
         for epoch in range(self.epochs):
@@ -77,3 +88,7 @@ class MessagePassing:
             # TODO: Continue implementing this part
             for batch in batches:
                 batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
+                for layer in range(1, self.n_layers + 1):
+                    # TODO: This can be used later for multiple relations
+                    #for relation in self.n_relations:
+                    self.h_v[layer] = self._calculate_h_v_l(layer)
