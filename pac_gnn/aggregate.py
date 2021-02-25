@@ -1,6 +1,6 @@
 import math
 import random
-from typing import List, Generator
+from typing import List
 from itertools import combinations
 
 import networkx
@@ -51,16 +51,9 @@ class MessagePassing:
         self.h_v[0] = self.features
 
     def _construct_subgraph(self, nodes_idx: List[int]) -> networkx.Graph:
-        sub_G = networkx.Graph()
-        sub_G.add_nodes_from(nodes_idx)
+        return self.G.subgraph(nodes_idx)
 
-        for u, v in combinations(nodes_idx, r=2):
-            if self.G.has_edge(u, v):
-                sub_G.add_edge(u, v)
-
-        return sub_G
-
-    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int) -> Generator[List[int]]:
+    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int):
         for i in range(0, len(nodes_idx), batch_size):
             yield nodes_idx[i:i + batch_size]
 
@@ -88,6 +81,7 @@ class MessagePassing:
             # TODO: Continue implementing this part
             for batch in batches:
                 batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
+                sub_graph = self._construct_subgraph(batch_nodes)
                 for layer in range(1, self.n_layers + 1):
                     # TODO: Implement the choose step to calculate this part
                     #for relation in self.n_relations:
