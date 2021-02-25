@@ -89,6 +89,6 @@ class MessagePassing:
             for batch in batches:
                 batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
                 for layer in range(1, self.n_layers + 1):
-                    # TODO: This can be used later for multiple relations
+                    # TODO: Implement the choose step to calculate this part
                     #for relation in self.n_relations:
                     self.h_v[layer] = self._calculate_h_v_l(layer)
