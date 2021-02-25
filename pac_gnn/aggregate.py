@@ -1,10 +1,13 @@
+import math
 import random
+from typing import List
+from itertools import combinations
 
 import networkx
 import numpy as np
 
 from pac_gnn.pick import LabelBalancedSampler
-import math
+
 random.seed(1212)
 
 
@@ -45,7 +48,17 @@ class MessagePassing:
     def _init_h_v_0(self):
         self.h_v[0] = self.features
 
-    def update(self):
+    def _construct_subgraph(self, nodes_idx: List[int]):
+        sub_G = networkx.Graph()
+        sub_G.add_nodes_from(nodes_idx)
+
+        for u, v in combinations(nodes_idx, r=2):
+            if self.G.has_edge(u, v):
+                sub_G.add_edge(u, v)
+
+        return sub_G
+
+    def execute(self):
         for epoch in range(self.epochs):
             V_picked = random.choices(
                 self.G.nodes,
