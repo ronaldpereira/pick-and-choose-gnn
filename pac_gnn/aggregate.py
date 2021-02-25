@@ -58,6 +58,10 @@ class MessagePassing:
 
         return sub_G
 
+    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int):
+        for i in range(0, len(nodes_idx), batch_size):
+            yield nodes_idx[i:i + batch_size]
+
     def execute(self):
         for epoch in range(self.epochs):
             V_picked = random.choices(
@@ -72,4 +76,4 @@ class MessagePassing:
 
             # TODO: Continue implementing this part
             for batch in batches:
-                pass
+                batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
