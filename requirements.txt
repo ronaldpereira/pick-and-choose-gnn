@@ -5,3 +5,4 @@ isort
 pytest
 networkx
 scipy
+torch
