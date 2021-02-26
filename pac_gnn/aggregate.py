@@ -1,7 +1,6 @@
 import math
 import random
 from typing import List
-from itertools import combinations
 
 import networkx
 import numpy as np
@@ -78,7 +77,6 @@ class MessagePassing:
 
             batches = math.ceil(len(V_picked) / self.batch_size)
 
-            # TODO: Continue implementing this part
             for batch in batches:
                 batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
                 sub_graph = self._construct_subgraph(batch_nodes)

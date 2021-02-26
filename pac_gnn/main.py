@@ -2,8 +2,8 @@ import networkx
 from networkx.linalg.graphmatrix import adjacency_matrix
 import numpy as np
 
-from pac_gnn.pick import LabelBalancedSampler
 from pac_gnn.aggregate import MessagePassing
+from pac_gnn.pick import LabelBalancedSampler
 
 
 def _create_graph() -> networkx.Graph:
