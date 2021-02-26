@@ -42,10 +42,10 @@ class MessagePassing:
         self.dimension_size = dimension_size
         self.label_balanced_sampler = label_balanced_sampler
 
-        self.h_v = np.zeros(shape=[n_layers, features.shape[0], features.shape[1]])
+        self.h_v = np.zeros(shape=[n_layers + 1, features.shape[0], features.shape[1]])
         self._init_h_v_0()
 
-        self.weights = np.zeros(shape=[n_layers, features.shape[0], features.shape[1]])
+        self.weights = np.zeros(shape=[n_layers + 1, features.shape[0], features.shape[1]])
 
     def _init_h_v_0(self):
         self.h_v[0] = self.features
