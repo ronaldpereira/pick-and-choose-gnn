@@ -13,15 +13,15 @@ random.seed(1212)
 class MessagePassing:
 
     def __init__(
-        self, G: networkx.Graph, features: np.array, v_train: np.array, picks: int, epochs: int,
-        batch_size: int, n_layers: int, dimension_size: int,
+        self, G: networkx.Graph, embeddings: np.array, v_train: np.array, picks: int, epochs: int,
+        batch_size: int, n_layers: int, dimension_size: int, n_relations: int,
         label_balanced_sampler: LabelBalancedSampler
     ):
         """Messsage Passing class object.
 
         Args:
             G (networkx.Graph): Input graph.
-            features (np.array): 2D array containing node features.
+            embeddings (np.array): 2D array containing node embeddings.
             v_train (np.array): 1D array containing train set node indexes.
             picks (int): Number of nodes to pick in each epoch.
             epochs (int): Number of total training epochs.
@@ -32,43 +32,82 @@ class MessagePassing:
         """
 
         self.G = G
-        self.features = features
+        self.embeddings = embeddings
         self.v_train = v_train
         self.picks = picks
         self.epochs = epochs
-        self.batch_size = batch_size if batch_size else len(G.nodes)
+        self.batch_size = batch_size if batch_size else G.number_of_nodes()
         self.n_layers = n_layers
         self.dimension_size = dimension_size
+        self.n_relations = n_relations
+
         self.label_balanced_sampler = label_balanced_sampler
 
-        self.h_v = np.zeros(shape=[n_layers + 1, features.shape[0], features.shape[1]])
-        self._init_h_v_0()
+        self.h_v_l = np.zeros(
+            shape=[
+                G.number_of_nodes(), n_layers + 1,
+                G.number_of_nodes(), embeddings.embedding_dim
+            ],
+            dtype=object
+        )
+        self.h_v_l[:, 0] = embeddings
 
-        self.weights = np.zeros(shape=[n_layers + 1, features.shape[0], features.shape[1]])
+        self.h_v_r_l = np.zeros(
+            shape=[
+                G.number_of_nodes(), n_relations + 1, n_layers + 1,
+                G.number_of_nodes(), embeddings.embedding_dim
+            ],
+            dtype=object
+        )
+        self.h_v_r_l[:, 0, 0] = embeddings
 
-    def _init_h_v_0(self):
-        self.h_v[0] = self.features
+        self.w = np.zeros(
+            shape=[
+                n_layers + 1, embeddings.embedding_dim, (n_relations + 1) * embeddings.embedding_dim
+            ]
+        )
+        self.w_r = np.zeros(
+            shape=[
+                n_relations + 1, n_layers + 1, embeddings.embedding_dim, 2 *
+                embeddings.embedding_dim
+            ]
+        )
 
     def _construct_subgraph(self, nodes_idx: List[int]) -> networkx.Graph:
         return self.G.subgraph(nodes_idx)
 
-    def _generate_node_batches(self, nodes_idx: List[int], batch_size: int):
+    @staticmethod
+    def _generate_node_batches(nodes_idx: List[int], batch_size: int) -> List[int]:
         for i in range(0, len(nodes_idx), batch_size):
             yield nodes_idx[i:i + batch_size]
 
     @staticmethod
-    def _relu(matrix: np.array) -> np.array:
-        return matrix * (matrix > 0)
+    def _relu(x: np.array) -> np.array:
+        return x * (x > 0)
 
-    def _calculate_h_v_l(self, layer: int) -> np.array:
-        return self._relu(
-            self.weights[layer] @ np.concatenate(self.h_v[layer - 1], self.h_v[layer])
-        )
+    def _update_h_v_r_l(self, batch_nodes: int, relation: int, layer: int) -> np.array:
+        for v in batch_nodes:
+            mean_agg = np.mean(self.h_v_r_l[list(self.G.neighbors(v)), relation, layer - 1], axis=0)
+
+            self.h_v_r_l[v, relation, layer] = self._relu(
+                np.dot(
+                    self.w_r[relation, layer],
+                    np.concatenate((self.h_v_r_l[v, relation, layer - 1], mean_agg), axis=0)
+                )
+            )
+
+    def _update_h_v_l(self, batch_nodes: int, layer: int) -> np.array:
+        for v in batch_nodes:
+            concat_result = self.h_v[layer - 1]
+            for relation in self.n_relations:
+                concat_result = np.concatenate((concat_result, self.h_v_r_l[v, relation, layer]))
+
+            self.h_v_l[v, layer] = self._relu(self.w[layer] @ concat_result)
 
     def execute(self):
         for epoch in range(self.epochs):
             V_picked = random.choices(
-                self.G.nodes,
+                list(self.G.nodes),
                 weights=list(
                     map(lambda n: self.label_balanced_sampler.calculate_P(n), self.G.nodes)
                 ),
@@ -77,10 +116,12 @@ class MessagePassing:
 
             batches = math.ceil(len(V_picked) / self.batch_size)
 
-            for batch in batches:
-                batch_nodes = self._generate_node_batches(V_picked, self.batch_size)
+            for batch in range(batches):
+                batch_nodes = list(self._generate_node_batches(V_picked, self.batch_size))[batch]
                 sub_graph = self._construct_subgraph(batch_nodes)
                 for layer in range(1, self.n_layers + 1):
-                    # TODO: Implement the choose step to calculate this part
-                    #for relation in self.n_relations:
-                    self.h_v[layer] = self._calculate_h_v_l(layer)
+                    for relation in range(1, self.n_relations + 1):
+                        self._update_h_v_r_l(batch_nodes, relation, layer)
+                    self._update_h_v_l(batch_nodes, layer)
+
+        return self.h_v_l
