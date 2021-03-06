@@ -6,6 +6,7 @@ import networkx
 import numpy as np
 
 from pac_gnn.pick import LabelBalancedSampler
+from pac_gnn.choose import NeighborhoodSampler
 
 random.seed(1212)
 
@@ -15,7 +16,7 @@ class MessagePassing:
     def __init__(
         self, G: networkx.Graph, embeddings: np.array, v_train: np.array, picks: int, epochs: int,
         batch_size: int, n_layers: int, dimension_size: int, n_relations: int,
-        label_balanced_sampler: LabelBalancedSampler
+        label_balanced_sampler: LabelBalancedSampler, labels: np.array
     ):
         """Messsage Passing class object.
 
@@ -29,6 +30,7 @@ class MessagePassing:
             n_layers (int): Number of layers.
             dimension_size (int): Dimension size for the l-th layer.
             label_balanced_sampler (LabelBalancedSampler): LabelBalancedSampler object.
+            labels (np.array): Numpy array containing all labels.
         """
 
         self.G = G
@@ -40,6 +42,7 @@ class MessagePassing:
         self.n_layers = n_layers
         self.dimension_size = dimension_size
         self.n_relations = n_relations
+        self.labels = labels
 
         self.label_balanced_sampler = label_balanced_sampler
 
@@ -71,6 +74,10 @@ class MessagePassing:
                 n_relations + 1, n_layers + 1, embeddings.embedding_dim, 2 *
                 embeddings.embedding_dim
             ]
+        )
+
+        self.neighborhood_sampler = NeighborhoodSampler(
+            self.h_v_r_l, self.labels, self.n_layers, self.G.number_of_nodes()
         )
 
     def _construct_subgraph(self, nodes_idx: List[int]) -> networkx.Graph:
@@ -121,6 +128,8 @@ class MessagePassing:
                 sub_graph = self._construct_subgraph(batch_nodes)
                 for layer in range(1, self.n_layers + 1):
                     for relation in range(1, self.n_relations + 1):
+                        # Oversampling and undersampling of batch_nodes
+                        self.neighborhood_sampler()
                         self._update_h_v_r_l(batch_nodes, relation, layer)
                     self._update_h_v_l(batch_nodes, layer)
 

@@ -31,7 +31,7 @@ def main():
     embeddings = nn.Embedding(G.number_of_nodes(), 5)
 
     message_passing = MessagePassing(
-        G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler
+        G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
     )
 
     print(message_passing.execute())
