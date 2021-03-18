@@ -10,15 +10,39 @@ from pac_gnn.aggregate import MessagePassing
 from pac_gnn.choose import NeighborhoodSampler
 from pac_gnn.pick import LabelBalancedSampler
 
+torch.random.manual_seed(1212)
+
 
 def _create_graph() -> Tuple[networkx.Graph, np.array]:
     G = networkx.Graph()
 
-    G.add_node(0, label=0)
-    G.add_node(1, label=0)
-    G.add_node(2, label=1)
+    G.add_node(0, id='a', label=0)
+    G.add_node(1, id='b', label=0)
+    G.add_node(2, id='c', label=0)
+    G.add_node(3, id='d', label=0)
+    G.add_node(4, id='e', label=0)
+    G.add_node(5, id='f', label=0)
+    G.add_node(6, id='g', label=0)
+    G.add_node(7, id='h', label=0)
+    G.add_node(8, id='u', label=1)
+    G.add_node(9, id='v', label=1)
+    G.add_node(10, id='w', label=0)
 
-    G.add_edges_from([[0, 1], [1, 2]])
+    G.add_edge(0, 1)  # a -> b
+    G.add_edge(0, 9)  # a -> v
+    G.add_edge(1, 9)  # b -> v
+    G.add_edge(9, 2)  # v -> c
+    G.add_edge(9, 3)  # v -> d
+    G.add_edge(2, 3)  # c -> d
+    G.add_edge(3, 10)  # d -> w
+    G.add_edge(3, 4)  # d -> e
+    G.add_edge(10, 4)  # w -> e
+    G.add_edge(10, 8)  # w -> u
+    G.add_edge(4, 8)  # e -> u
+    G.add_edge(8, 7)  # u -> h
+    G.add_edge(8, 5)  # u -> f
+    G.add_edge(8, 6)  # u -> g
+    G.add_edge(5, 6)  # f -> g
 
     labels = np.array(list(map(lambda n: G.nodes[n]['label'], G.nodes)))
 
@@ -30,18 +54,15 @@ def main():
 
     label_balanced_sampler = LabelBalancedSampler(np.array(adjacency_matrix(G).todense()), labels)
 
-    features = torch.tensor(
-        [[1.2, 1.2, 2.1, 4.9, 0.], [2.1, 4.9, 3.3, 6.6, 0.], [7.2, 9.2, 20.1, 17.9, 1.]],
-        dtype=torch.float
-    )
+    for u in G.nodes:
+        print(u, label_balanced_sampler.calculate_P(u))
 
-    embeddings = nn.Embedding(G.number_of_nodes(), 5)
+    features = torch.randn(size=[G.number_of_nodes(), 10])
 
     neighborhood_sampler = NeighborhoodSampler(G, features, labels, 1, G.number_of_nodes())
 
-    neighborhood_sampler.undersample_majority_class_node(0)
-    neighborhood_sampler.undersample_majority_class_node(1)
-    neighborhood_sampler.oversample_minority_class_node(2)
+    neighborhood_sampler.majority_class_sampler(3)
+    neighborhood_sampler.minority_class_sampler(9)
 
     # message_passing = MessagePassing(
     #     G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
