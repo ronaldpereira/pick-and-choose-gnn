@@ -3,9 +3,11 @@ from typing import Tuple
 import networkx
 from networkx.linalg.graphmatrix import adjacency_matrix
 import numpy as np
+import torch
 from torch import nn
 
 from pac_gnn.aggregate import MessagePassing
+from pac_gnn.choose import NeighborhoodSampler
 from pac_gnn.pick import LabelBalancedSampler
 
 
@@ -28,13 +30,20 @@ def main():
 
     label_balanced_sampler = LabelBalancedSampler(np.array(adjacency_matrix(G).todense()), labels)
 
-    embeddings = nn.Embedding(G.number_of_nodes(), 5)
-
-    message_passing = MessagePassing(
-        G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
+    features = torch.tensor(
+        [[[1.2, 1.2], [2.1, 4.9]], [[2.1, 4.9], [3.3, 6.6]], [[7.2, 9.2], [20.1, 17.9]]],
+        dtype=torch.float
     )
 
-    print(message_passing.execute())
+    embeddings = nn.Embedding(G.number_of_nodes(), 5)
+
+    neighborhood_sampler = NeighborhoodSampler(G, features, labels, 1, G.number_of_nodes())
+
+    # message_passing = MessagePassing(
+    #     G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
+    # )
+
+    # print(message_passing.execute())
 
 
 if __name__ == '__main__':
