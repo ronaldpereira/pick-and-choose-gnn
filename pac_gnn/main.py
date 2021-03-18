@@ -31,13 +31,17 @@ def main():
     label_balanced_sampler = LabelBalancedSampler(np.array(adjacency_matrix(G).todense()), labels)
 
     features = torch.tensor(
-        [[[1.2, 1.2], [2.1, 4.9]], [[2.1, 4.9], [3.3, 6.6]], [[7.2, 9.2], [20.1, 17.9]]],
+        [[1.2, 1.2, 2.1, 4.9, 0.], [2.1, 4.9, 3.3, 6.6, 0.], [7.2, 9.2, 20.1, 17.9, 1.]],
         dtype=torch.float
     )
 
     embeddings = nn.Embedding(G.number_of_nodes(), 5)
 
     neighborhood_sampler = NeighborhoodSampler(G, features, labels, 1, G.number_of_nodes())
+
+    neighborhood_sampler.undersample_majority_class_node(0)
+    neighborhood_sampler.undersample_majority_class_node(1)
+    neighborhood_sampler.oversample_minority_class_node(2)
 
     # message_passing = MessagePassing(
     #     G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels

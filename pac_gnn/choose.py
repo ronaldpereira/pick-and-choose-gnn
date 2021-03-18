@@ -15,7 +15,7 @@ class FullyConnectedDistanceNetwork(nn.Module):
         self.d_l = d_l
         self.n_relations = n_relations
 
-        self.fc = nn.Linear(self.d_l, 1)
+        self.fc = nn.Linear(self.d_l, 2)
         nn.init.normal_(self.fc.weight)
         self.activation = nn.Sigmoid()
         self.softmax = nn.Softmax(dim=1)
@@ -36,18 +36,16 @@ class NeighborhoodSampler:
     ):
 
         self.G = G
+        self.sampled_G = None
 
         self.h = h
         self.n_nodes = n_nodes
 
-        self.model = FullyConnectedDistanceNetwork(1, self.h.shape[2], n_relations)
+        self.model = FullyConnectedDistanceNetwork(1, self.h.shape[1], n_relations)
+        self._train_distance(self.h, torch.tensor(y))
 
-        self._train_distance(self.h, torch.tensor([y]))
-
-        self.rho_plus = self.minority_class_sampling()
-        print(self.rho_plus)
-        self.rho_minus = self.majority_class_sampling()
-        print(self.rho_minus)
+        self.rho_plus = self._minority_class_sampling()
+        self.rho_minus = self._majority_class_sampling()
 
     def _train_distance(
         self, x: torch.tensor, y: torch.tensor, learning_rate: float = 0.1, epochs: int = 100
@@ -55,7 +53,7 @@ class NeighborhoodSampler:
         for epoch in range(epochs):
             y_pred = self.model(x)
 
-            loss = self.model.loss_fn(y_pred, y.view(-1, 1))
+            loss = self.model.loss_fn(y_pred, y)
             print(epoch, loss.item())
 
             self.model.zero_grad()
@@ -69,7 +67,7 @@ class NeighborhoodSampler:
     def _get_nodes_from_class(self, label: int):
         return list(filter(lambda x: self.G.nodes[x]['label'] == label, self.G.nodes))
 
-    def minority_class_sampling(self):
+    def _minority_class_sampling(self):
         # calculates the rho_plus hyperparameter
         nodes_ids = self._get_nodes_from_class(1)
 
@@ -79,7 +77,7 @@ class NeighborhoodSampler:
 
         return 0.5 * mean_degree
 
-    def majority_class_sampling(self):
+    def _majority_class_sampling(self):
         # calculates the rho_minus hyperparameter
         nodes_ids = self._get_nodes_from_class(0)
 
@@ -88,3 +86,27 @@ class NeighborhoodSampler:
         median_degree = np.median(degrees)
 
         return median_degree
+
+    def _distance_function(self, u: int, v: int):
+
+        u_y_pred = self.model(self.h[u].view(1, -1)).detach().numpy()
+        v_y_pred = self.model(self.h[v].view(1, -1)).detach().numpy()
+        distance = np.linalg.norm(v_y_pred - u_y_pred, ord=1)
+
+        return distance
+
+    def oversample_minority_class_node(self, v: int):
+        self.sampled_G = self.G
+        neighbors = list(self.G.adj[v].keys())
+
+        for u in neighbors:
+            distance = self._distance_function(u, v)
+            print(f'u={u} v={v} d(u,v)={distance}')
+
+    def undersample_majority_class_node(self, v: int):
+        self.sampled_G = self.G
+        same_class_nodes = list(filter(lambda x: self.G.nodes[x]['label'] == 0, self.G.nodes))
+
+        for u in same_class_nodes:
+            distance = self._distance_function(u, v)
+            print(f'u={u} v={v} d(u,v)={distance}')
