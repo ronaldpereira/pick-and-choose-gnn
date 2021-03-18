@@ -6,3 +6,4 @@ pytest
 networkx
 scipy
 torch
+scikit-learn
