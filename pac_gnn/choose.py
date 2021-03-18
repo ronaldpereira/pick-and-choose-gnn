@@ -136,23 +136,36 @@ class NeighborhoodSampler:
 
         return sampled_G
 
-    def majority_class_sampler(self, v: int):
+    def _majority_class_sampler(self, v: int):
+        print('undersample')
         undersampled_G = self._undersample_neighborhood_function(v)
         print(undersampled_G.nodes)
         print(undersampled_G.edges)
+
         return undersampled_G
 
-    def minority_class_sampler(self, v: int):
+    def _minority_class_sampler(self, v: int):
+        print('undersample')
         undersampled_G = self._undersample_neighborhood_function(v)
         print(undersampled_G.nodes)
         print(undersampled_G.edges)
 
+        print('oversample')
         oversampled_G = self._oversample_neighborhood_function(v)
         print(oversampled_G.nodes)
         print(oversampled_G.edges)
 
+        print('final graph')
         final_G = networkx.compose(undersampled_G, oversampled_G)
         print(final_G.nodes)
         print(final_G.edges)
 
         return final_G
+
+    def node_sampler(self, v: int):
+        if self.G.nodes[v]['label'] == 0:
+            print('majority class')
+            return self._majority_class_sampler(v)
+        else:
+            print('minority class')
+            return self._minority_class_sampler(v)

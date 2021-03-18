@@ -61,8 +61,8 @@ def main():
 
     neighborhood_sampler = NeighborhoodSampler(G, features, labels, 1, G.number_of_nodes())
 
-    neighborhood_sampler.majority_class_sampler(3)
-    neighborhood_sampler.minority_class_sampler(9)
+    neighborhood_sampler.node_sampler(3)
+    neighborhood_sampler.node_sampler(9)
 
     # message_passing = MessagePassing(
     #     G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
