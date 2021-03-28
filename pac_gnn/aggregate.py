@@ -64,13 +64,12 @@ class MessagePassing:
             ],
             dtype=float
         )
-        self.h_v_r_l[:, 0, 0] = self.features
+        self.h_v_r_l[:, :, 0] = self.features
 
-        self.w = np.zeros(
-            shape=[n_layers + 1, features.shape[0], (n_relations + 1) * features.shape[1]]
-        )
-        self.w_r = np.zeros(
-            shape=[n_relations + 1, n_layers + 1, features.shape[0], 2 * features.shape[1]]
+        self.w = np.ones(shape=[n_layers + 1, features.shape[1], features.shape[0]])
+
+        self.w_r = np.ones(
+            shape=[n_relations + 1, n_layers + 1, features.shape[1], features.shape[0]]
         )
 
         self.neighborhood_sampler = neighborhood_sampler
@@ -87,16 +86,17 @@ class MessagePassing:
     def _relu(x: np.array) -> np.array:
         return x * (x > 0)
 
-    def _update_h_v_r_l(self, batch_nodes: int, relation: int, layer: int) -> np.array:
-        for v in batch_nodes:
-            mean_agg = np.mean(self.h_v_r_l[list(self.G.neighbors(v)), relation, layer - 1], axis=0)
+    def _update_h_v_r_l(
+        self, v: int, v_graph: networkx.Graph, relation: int, layer: int
+    ) -> np.array:
+        mean_agg = np.mean(self.h_v_r_l[list(v_graph.neighbors(v)), relation, layer - 1], axis=0)
 
-            self.h_v_r_l[v, relation, layer] = self._relu(
-                np.dot(
-                    self.w_r[relation, layer],
-                    np.concatenate((self.h_v_r_l[v, relation, layer - 1], mean_agg), axis=0)
-                )
+        self.h_v_r_l[v, relation, layer] = self._relu(
+            np.dot(
+                self.w_r[relation, layer],
+                np.concatenate((self.h_v_r_l[v, relation, layer - 1], mean_agg), axis=1)
             )
+        )
 
     def _update_h_v_l(self, batch_nodes: int, layer: int) -> np.array:
         for v in batch_nodes:
@@ -108,13 +108,9 @@ class MessagePassing:
 
     def execute(self):
         for epoch in range(self.epochs):
-            V_picked = random.choices(
-                list(self.G.nodes),
-                weights=list(
-                    map(lambda n: self.label_balanced_sampler.calculate_P(n), self.G.nodes)
-                ),
-                k=self.picks
-            )
+            probs = list(map(lambda n: self.label_balanced_sampler.calculate_P(n), self.G.nodes))
+            probs /= np.sum(probs)
+            V_picked = np.random.choice(list(self.G.nodes), size=self.picks, replace=False, p=probs)
 
             batches = math.ceil(len(V_picked) / self.batch_size)
 
@@ -123,9 +119,9 @@ class MessagePassing:
                 sub_graph = self._construct_subgraph(batch_nodes)
                 for layer in range(1, self.n_layers + 1):
                     for relation in range(1, self.n_relations + 1):
-                        # Oversampling and undersampling of batch_nodes
-                        self.neighborhood_sampler()
-                        self._update_h_v_r_l(batch_nodes, relation, layer)
+                        for v in batch_nodes:
+                            v_graph = self.neighborhood_sampler.node_sampler(v)
+                            self._update_h_v_r_l(v, v_graph, relation, layer)
                     self._update_h_v_l(batch_nodes, layer)
 
         return self.h_v_l

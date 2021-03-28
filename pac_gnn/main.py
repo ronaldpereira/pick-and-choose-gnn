@@ -52,7 +52,9 @@ def _create_graph() -> Tuple[networkx.Graph, np.array]:
 def main():
     G, labels = _create_graph()
 
-    label_balanced_sampler = LabelBalancedSampler(np.array(adjacency_matrix(G).todense()), labels)
+    label_balanced_sampler = LabelBalancedSampler(
+        A=np.array(adjacency_matrix(G).todense()), labels=labels
+    )
 
     for u in G.nodes:
         print(u, label_balanced_sampler.calculate_P(u))
@@ -71,7 +73,7 @@ def main():
         labels=labels,
         epochs=100,
         picks=11,
-        batch_size=10,
+        batch_size=11,
         n_layers=5,
         dimension_size=2,
         n_relations=1,
