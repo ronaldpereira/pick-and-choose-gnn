@@ -4,9 +4,10 @@ from typing import List
 
 import networkx
 import numpy as np
+import torch
 
-from pac_gnn.pick import LabelBalancedSampler
 from pac_gnn.choose import NeighborhoodSampler
+from pac_gnn.pick import LabelBalancedSampler
 
 random.seed(1212)
 
@@ -14,30 +15,32 @@ random.seed(1212)
 class MessagePassing:
 
     def __init__(
-        self, G: networkx.Graph, embeddings: np.array, v_train: np.array, picks: int, epochs: int,
-        batch_size: int, n_layers: int, dimension_size: int, n_relations: int,
-        label_balanced_sampler: LabelBalancedSampler, labels: np.array
+        self, G: networkx.Graph, features: torch.tensor, v_train: np.array, labels: np.array,
+        epochs: int, picks: int, batch_size: int, n_layers: int, dimension_size: int,
+        n_relations: int, label_balanced_sampler: LabelBalancedSampler,
+        neighborhood_sampler: NeighborhoodSampler
     ):
         """Messsage Passing class object.
 
         Args:
             G (networkx.Graph): Input graph.
-            embeddings (np.array): 2D array containing node embeddings.
+            features (torch.tensor): 2D tensor containing node features.
             v_train (np.array): 1D array containing train set node indexes.
-            picks (int): Number of nodes to pick in each epoch.
+            labels (np.array): Numpy array containing all labels.
             epochs (int): Number of total training epochs.
+            picks (int): Number of nodes to pick in each epoch.
             batch_size (int): Number of training batch size.
             n_layers (int): Number of layers.
             dimension_size (int): Dimension size for the l-th layer.
             label_balanced_sampler (LabelBalancedSampler): LabelBalancedSampler object.
-            labels (np.array): Numpy array containing all labels.
+            neighborhood_sampler (NeighborhoodSampler): NeighborhoodSampler object.
         """
 
         self.G = G
-        self.embeddings = embeddings
+        self.features = features.detach().numpy()
         self.v_train = v_train
-        self.picks = picks
         self.epochs = epochs
+        self.picks = picks
         self.batch_size = batch_size if batch_size else G.number_of_nodes()
         self.n_layers = n_layers
         self.dimension_size = dimension_size
@@ -48,37 +51,29 @@ class MessagePassing:
 
         self.h_v_l = np.zeros(
             shape=[
-                G.number_of_nodes(), n_layers + 1,
-                G.number_of_nodes(), embeddings.embedding_dim
+                G.number_of_nodes(), n_layers + 1, self.features.shape[0], self.features.shape[1]
             ],
-            dtype=object
+            dtype=float
         )
-        self.h_v_l[:, 0] = embeddings
+        self.h_v_l[:, 0] = self.features
 
         self.h_v_r_l = np.zeros(
             shape=[
-                G.number_of_nodes(), n_relations + 1, n_layers + 1,
-                G.number_of_nodes(), embeddings.embedding_dim
+                G.number_of_nodes(), n_relations + 1, n_layers + 1, self.features.shape[0],
+                self.features.shape[1]
             ],
-            dtype=object
+            dtype=float
         )
-        self.h_v_r_l[:, 0, 0] = embeddings
+        self.h_v_r_l[:, 0, 0] = self.features
 
         self.w = np.zeros(
-            shape=[
-                n_layers + 1, embeddings.embedding_dim, (n_relations + 1) * embeddings.embedding_dim
-            ]
+            shape=[n_layers + 1, features.shape[0], (n_relations + 1) * features.shape[1]]
         )
         self.w_r = np.zeros(
-            shape=[
-                n_relations + 1, n_layers + 1, embeddings.embedding_dim, 2 *
-                embeddings.embedding_dim
-            ]
+            shape=[n_relations + 1, n_layers + 1, features.shape[0], 2 * features.shape[1]]
         )
 
-        self.neighborhood_sampler = NeighborhoodSampler(
-            self.h_v_r_l, self.labels, self.n_layers, self.G.number_of_nodes()
-        )
+        self.neighborhood_sampler = neighborhood_sampler
 
     def _construct_subgraph(self, nodes_idx: List[int]) -> networkx.Graph:
         return self.G.subgraph(nodes_idx)

@@ -4,6 +4,7 @@ import pytest
 import networkx
 import numpy as np
 from torch import nn
+import torch
 
 
 def _create_graph(nodes: List[int], edges: List[Tuple[int, int]]):
@@ -35,7 +36,8 @@ def test_construct_subgraph(
     graph: networkx.Graph, nodes_idx: List[int], expected_subgraph: networkx.Graph
 ):
     message_passing = MessagePassing(
-        graph, nn.Embedding(0, 0), None, None, None, None, 1, None, 1, None
+        graph, torch.randn(size=[graph.number_of_nodes(), 10]), None, None, 1, 1, 1, 1, 1, 1, None,
+        None
     )
 
     sub_graph = message_passing._construct_subgraph(nodes_idx)
@@ -58,7 +60,8 @@ def test_generate_node_batches(
     nodes_idx: List[int], batch_size: int, expected_nodes_idx_batches: List[List[int]]
 ):
     message_passing = MessagePassing(
-        networkx.Graph(), nn.Embedding(0, 0), None, None, None, None, 1, None, 1, None
+        networkx.Graph(), torch.randn(size=[networkx.Graph().number_of_nodes(), 10]), None, None, 1,
+        1, 1, 1, 1, 1, None, None
     )
 
     nodes_idx_batches = list(message_passing._generate_node_batches(nodes_idx, batch_size))

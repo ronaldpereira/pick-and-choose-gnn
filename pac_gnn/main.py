@@ -59,16 +59,27 @@ def main():
 
     features = torch.randn(size=[G.number_of_nodes(), 10])
 
-    neighborhood_sampler = NeighborhoodSampler(G, features, labels, 1, G.number_of_nodes())
+    neighborhood_sampler = NeighborhoodSampler(G=G, h=features, y=labels, n_relations=1)
 
     neighborhood_sampler.node_sampler(3)
     neighborhood_sampler.node_sampler(9)
 
-    # message_passing = MessagePassing(
-    #     G, embeddings, [0, 2], 2, 10, 3, 2, 2, 1, label_balanced_sampler, labels
-    # )
+    message_passing = MessagePassing(
+        G=G,
+        features=features,
+        v_train=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        labels=labels,
+        epochs=100,
+        picks=11,
+        batch_size=10,
+        n_layers=5,
+        dimension_size=2,
+        n_relations=1,
+        label_balanced_sampler=label_balanced_sampler,
+        neighborhood_sampler=neighborhood_sampler
+    )
 
-    # print(message_passing.execute())
+    print(message_passing.execute())
 
 
 if __name__ == '__main__':

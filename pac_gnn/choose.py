@@ -32,14 +32,12 @@ class FullyConnectedDistanceNetwork(nn.Module):
 
 class NeighborhoodSampler:
 
-    def __init__(
-        self, G: networkx.graph, h: torch.tensor, y: np.array, n_relations: int, n_nodes: int
-    ):
+    def __init__(self, G: networkx.graph, h: torch.tensor, y: np.array, n_relations: int):
 
         self.G = G
 
         self.h = h
-        self.n_nodes = n_nodes
+        self.n_nodes = self.G.number_of_nodes()
 
         self.model = FullyConnectedDistanceNetwork(1, self.h.shape[1], n_relations)
         self._train_distance(self.h, torch.tensor(y))
