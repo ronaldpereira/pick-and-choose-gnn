@@ -40,7 +40,7 @@ class NeighborhoodSampler:
         self.n_nodes = self.G.number_of_nodes()
 
         self.model = FullyConnectedDistanceNetwork(1, self.h.shape[1], n_relations)
-        self._train_distance(self.h, torch.tensor(y))
+        self._train_distance(self.h, torch.LongTensor(y))
 
     def _train_distance(
         self, x: torch.tensor, y: torch.tensor, learning_rate: float = 0.1, epochs: int = 100
